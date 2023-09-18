@@ -39,11 +39,11 @@ class Generator(nn.Module):
         self.conv2 = Block(self.in_ch//2, self.in_ch//4) # 16
         self.conv3 = Block(self.in_ch//4, self.in_ch//8) # 32
 
-        self.conv4 = Block(self.in_ch//8, self.in_ch//16) # 64
-        self.conv5 = Block(self.in_ch//16, self.in_ch//32) # 128
+        self.conv4 = Block(self.in_ch//8, self.in_ch//8) # 64
+        self.conv5 = Block(self.in_ch//8, self.in_ch//8) # 128
 
         # keep output size same as input
-        self.out = nn.Conv2d(self.in_ch//32, self.img_channels, 3, padding='same' ) # test with kernel size 3
+        self.out = nn.Conv2d(self.in_ch//8, self.img_channels, 3, padding='same' ) # test with kernel size 3
         self.out_act = nn.Tanh()
 
     def forward(self, x):

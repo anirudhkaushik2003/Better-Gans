@@ -24,7 +24,8 @@ data_transforms = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.RandomRotation(15),
     transforms.ToTensor(),
-    transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
+    # min max normalization
+    transforms.Lambda(lambda x: (x - x.min())/ (x.max() - x.min())),
 
 ])
 
@@ -107,7 +108,7 @@ for epoch in range(num_epochs):
 
         optimG.step()
 
-        if step%50 == 0:
+        if step%20 == 0:
             # print(f"Epoch: {epoch}, step: {step:03d}, LossD: {lossD.item()}, LossG: {lossG.item()}, D(x): {D_x}, D(G(z)): {D_G_z1:02f }/{D_G_z2:02f}")
             # limit loss to 2 decimal places
             print(f"Epoch: {epoch}, step: {step:03d}, LossD: {lossD.item():.2f}, LossG: {lossG.item():.2f}, D(x): {D_x:.2f}, D(G(z)): {D_G_z1:.2f}/{D_G_z2:.2f}")
