@@ -31,16 +31,19 @@ class Generator(nn.Module):
 
         
         self.project = nn.Sequential(
-            nn.ConvTranspose2d(100, self.in_ch, 4,1,0, bias=False),
+            nn.ConvTranspose2d(100, self.in_ch, 4,1,0, bias=False), # 4
             nn.BatchNorm2d(self.in_ch),
             nn.LeakyReLU(0.2)
         )
-        self.conv1 = Block(self.in_ch, self.in_ch//2)
-        self.conv2 = Block(self.in_ch//2, self.in_ch//4)
-        self.conv3 = Block(self.in_ch//4, self.in_ch//8)
+        self.conv1 = Block(self.in_ch, self.in_ch//2) # 8
+        self.conv2 = Block(self.in_ch//2, self.in_ch//4) # 16
+        self.conv3 = Block(self.in_ch//4, self.in_ch//8) # 32
+
+        self.conv4 = Block(self.in_ch//8, self.in_ch//16) # 64
+        self.conv5 = Block(self.in_ch//16, self.in_ch//32) # 128
 
         # keep output size same as input
-        self.out = nn.Conv2d(self.in_ch//8, self.img_channels, 3, padding='same' ) # test with kernel size 3
+        self.out = nn.Conv2d(self.in_ch//32, self.img_channels, 3, padding='same' ) # test with kernel size 3
         self.out_act = nn.Tanh()
 
     def forward(self, x):
@@ -48,6 +51,8 @@ class Generator(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
         x = self.out(x)
         x = self.out_act(x)
 

@@ -17,28 +17,33 @@ from utils import weights_init, create_checkpoint, restart_last_checkpoint
 import torchvision.utils as vutils
 
 BATCH_SIZE = 64
-IMG_SIZE = 32
+IMG_SIZE = 128
+img_channels = 3
 
 data_transforms = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.RandomRotation(15),
     transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))
+    transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
 
 ])
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-train = torchvision.datasets.MNIST(root='/ssd_scratch/cvit/anirudhkaushik/datasets/', train=True, download=False, transform=data_transforms)
-test = torchvision.datasets.MNIST(root='/ssd_scratch/cvit/anirudhkaushik/datasets/', train=False, download=False, transform=data_transforms)
+train = torchvision.datasets.FGVCAircraft(root='/ssd_scratch/cvit/anirudhkaushik/datasets', split="train",  download=True, transform=data_transforms)
+val = torchvision.datasets.FGVCAircraft(root='/ssd_scratch/cvit/anirudhkaushik/datasets', split="val",  download=True, transform=data_transforms)
+test = torchvision.datasets.FGVCAircraft(root='/ssd_scratch/cvit/anirudhkaushik/datasets', split="test",  download=True, transform=data_transforms)
 
-data_loader = DataLoader(torch.utils.data.ConcatDataset([train, test]), batch_size=BATCH_SIZE, shuffle=True)
+data_loader = DataLoader(torch.utils.data.ConcatDataset([train, val, test]), batch_size=BATCH_SIZE, shuffle=True)
 
 
 criterion = nn.BCELoss()
 
-modelG = Generator(IMG_SIZE)
-modelD = Discriminator()
+modelG = Generator(IMG_SIZE, img_ch=img_channels)
+modelD = Discriminator(img_channels=img_channels)
+
+modelD = torch.nn.DataParallel(modelD)
+modelG = torch.nn.DataParallel(modelG)
 
 modelG = modelG.to(device)
 modelD = modelD.to(device)
@@ -50,17 +55,18 @@ fixed_noise = torch.randn(BATCH_SIZE, 100, 1, 1, device='cuda')
 real = 1.0
 fake = 0.0
 learning_rate1 = 2e-4
-learning_rate2 = 2e-3
+learning_rate2 = 2e-4
 optimD = torch.optim.Adam(modelD.parameters(), lr=learning_rate2, betas=(0.5, 0.999))
 optimG = torch.optim.Adam(modelG.parameters(), lr=learning_rate1, betas=(0.5, 0.999))
+
 
 num_epochs = 100
 save_freq = 1
 
 # check if checkpoint exists and load it
-if os.path.exists('/ssd_scratch/cvit/anirudhkaushik/checkpoints/gan_checkpoint_latest.pt'):
-    restart_last_checkpoint(modelG, optimG, type="G")
-    restart_last_checkpoint(modelD, optimD, type="D")
+if os.path.exists('/ssd_scratch/cvit/anirudhkaushik/checkpoints/bganG_checkpoint_latest.pt'):
+    restart_last_checkpoint(modelG, optimG, type="G", multiGPU=True)
+    restart_last_checkpoint(modelD, optimD, type="D", multiGPU=True)
 
 for epoch in range(num_epochs):
 
@@ -106,8 +112,8 @@ for epoch in range(num_epochs):
             # limit loss to 2 decimal places
             print(f"Epoch: {epoch}, step: {step:03d}, LossD: {lossD.item():.2f}, LossG: {lossG.item():.2f}, D(x): {D_x:.2f}, D(G(z)): {D_G_z1:.2f}/{D_G_z2:.2f}")
     if epoch%save_freq == 0:
-        create_checkpoint(modelG, optimG, epoch, lossG.item(), type="G")
-        create_checkpoint(modelD, optimD, epoch, lossD.item(), type="D")
+        create_checkpoint(modelG, optimG, epoch, lossG.item(), type="G", multiGPU=True)
+        create_checkpoint(modelD, optimD, epoch, lossD.item(), type="D", multiGPU=True)
 
 
 
